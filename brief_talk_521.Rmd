@@ -1,0 +1,201 @@
+---
+title: "Brief_Talk_521"
+author: "Ananya, Arthur, Mei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+## Regression examples can be referenced through https://www.statology.org/
+
+## Use 'mtcars' data for LASSO regression
+```{r mtcars}
+# Generate a summary of the 'mtcars' data set
+summary(mtcars)
+```
+
+## Perform lasso regression
+```{r}
+
+# response variable
+response <- mtcars$hp
+
+# define matrix of response variables
+predictors <- data.matrix(mtcars[, c('mpg', 'wt', 'drat', 'qsec')])
+
+```
+
+## Fit lasso regression model and visualize results
+```{r}
+library(glmnet)
+
+# Use k-fold cross-validation to identify lambda value that produces the lowest MSE
+# cv.glmnet() performs cross-validations using k = 10 folds as the default
+lass_model <- cv.glmnet(predictors, response, alpha = 1)
+
+# Find optimal lambda value that minimizes TEST MSE
+opt_lambda <- lass_model$lambda.min
+opt_lambda
+
+# Visualize optimal TEST MSE by lambda value
+plot(lass_model)
+```
+
+## Analyze final lasso model based on optimal lambda value
+```{r}
+
+# Identify coeffecients of optimal model based on lambda value
+opt_model <- glmnet(predictors, response, alpha = 1, lambda = opt_lambda)
+coef(opt_model)
+
+# Coefficient for predictor 'drat' is NOT displayed because lasso regresion shrinks coefficients from the model because it was identified as being 'non-influential'. One KEY characteristic of lasso regression is that it has the potential to remove predictors by shrinking coefficients to 0.
+```
+
+## Use final lasso model to make new predictions
+```{r}
+
+# Use final lasso regression model to make predictions on NEW observation
+# mpg - 35, wt - 3.0, drat, 4.0, qsec, 10.0
+new_predicted_data = matrix(c(35, 3.0, 4.0, 10.0), nrow = 1, ncol = 4)
+
+predict(opt_model, s = opt_lambda, newx = new_predicted_data)
+# Based on the input values, our model predicts this particular car to have a gross horespower that is returned by the predict function
+```
+
+## Calculate r-squared on the training data
+```{r}
+
+# Use fitted model to make predictions
+predicted_response <- predict(opt_model, s = opt_lambda, newx = predictors)
+
+# Calculate SST and SSE values for training and predicted, respectively
+sst <- sum((response - mean(response))^2)
+sse <- sum((predicted_response - response) ^2)
+
+# Calculate r-squared of the training data
+rsquared <- 1 - sse / sst
+final_percentage <- rsquared * 100
+final_percentage
+
+# Convert the final r-squared value into a percentage (i.e. convert into a scale out of 100) that informs us that the model was able to accurately describe the variation in the responses based on the training data.
+```
+
+
+## Perform RIDGE regression
+```{r}
+
+# In order to perform ridge regression, we use the 'glmnet' package. This method requires our 'response' variable to be in the form of a vector and the set of 'predictors' set to be in the form of a matrix class.
+
+# response variable
+response <- mtcars$hp
+
+# define matrix of response variables
+predictors <- data.matrix(mtcars[, c('mpg', 'wt', 'drat', 'qsec')])
+```
+
+## Fit RIDGE regression model and visualize results
+```{r}
+
+# In order to perform ridge regression, we use the 'glmnet' package. This method requires our 'response' variable to be in the form of a vector and the set of 'predictors' set to be in the form of a matrix class.
+# Note - ridge regression requires our data to be 'standardized' where the predictor variable has a mean value equal to 0 and standard deviation value equal to 1. The 'glmnet' function performs our standardization automatically, but we can also opt-out of this if we have already standardized our variables by setting 'standardize = False'
+library(glmnet)
+
+# Fit ridge regression model
+ridge_model <- glmnet(predictors, response, alpha = 0)
+
+# Visualize summary of ridge model
+summary(ridge_model)
+```
+
+## Identify optimal lambda value for RIDGE model
+```{r}
+
+# Use k-fold cross-validation to identify lambda value that produces the lowest MSE
+# cv.glmnet() performs cross-validations using k = 10 folds as the default
+opt_model <- cv.glmnet(predictors, response, alpha = 0)
+
+# Identify optimal lambda value where test MSE is minimal
+opt_lambda <- opt_model$lambda.min
+opt_lambda
+
+# Visualize test MSE according to optimal lambda value
+plot(opt_model)
+
+# The optimal lambda value that minimizes test MSE is returned into 'opt_lambda variable'
+```
+
+## Analyze final RIDGE model based on optimal lambda value
+```{r}
+
+# Identify coeffecients of optimal model based on lambda value
+opt_model <- glmnet(predictors, response, alpha = 0, lambda = opt_lambda)
+coef(opt_model)
+
+# Coefficient for predictor 'drat' is NOT displayed because lasso regresion shrinks coefficients from the model because it was identified as being 'non-influential'. One KEY characteristic of lasso regression is that it has the potential to remove predictors by shrinking coefficients to 0.
+```
+
+## Calculate r-squared for RIDGE model on the training data
+```{r}
+
+# Use fitted model to make predictions
+predicted_response <- predict(opt_model, s = opt_lambda, newx = predictors)
+
+# Calculate SST and SSE values using training and predicted, respectively
+sst <- sum((response - mean(response))^2)
+sse <- sum((predicted_response - response) ^2)
+
+# Calculate r-squared of the training data
+rsquared <- 1 - sse / sst
+final_percentage <- rsquared * 100
+final_percentage
+
+# Convert the final r-squared value into a percentage (i.e. convert into a scale out of 100) that informs us that the model was able to accurately describe the variation in the responses based on the training data.
+```
+
+## Simulate data for POISSON regression
+```{r}
+
+# Used for reproducibility
+set.seed(1)
+
+# Simulate data - 100 rows with 3 columns 'offers', 'division', 'exam'
+poisson_data <- data.frame(offers = c(rep(0, 50), rep(1, 30), rep(2, 10), rep(3, 7), rep(4, 3)),
+                           division = sample(c("A", "B", "C"), 100, replace = TRUE),
+                           exam = c(runif(50, 60, 80), runif(30, 60, 90), runif(20, 70, 90)))
+```
+
+## Fit POISSON regression model
+```{r}
+
+# Fit POISSON model
+poisson_model <- glm(offers ~ division + exam, family = "poisson", data = poisson_data)
+summary(poisson_model)
+```
+
+## Perform Chi-Square fit test
+```{r}
+
+# Using Chi-Square test to determine if model fits data - use residual deviance and degrees of freedom from the POISSON model output
+pchisq(101.45, 96, lower.tail = FALSE)
+
+# p-value for the test is significantly higher than 0.05, which indicates that the model fits the data well.
+```
+
+## Visualize number of offers based on division and exam score
+```{r}
+library(ggplot2)
+# Identify number of predicted offers using the fitted POISSON regression model
+poisson_data$phat <- predict(poisson_model, type = "response")
+
+ggplot(poisson_data, aes(x = exam, y = phat, color = division)) +
+  geom_point(aes(y = offers), alpha = .7, position = position_jitter(h = .2)) +
+  geom_line() +
+  labs(x = "Entrance Exam Score", y = "Expected Number of Scholarship Offers")
+
+## This plot shows us that the highest number of expected scholarship offers for players is for those players that score high on the entrance exam. The blue line indicates that players from division C are expected to get more offers compared to divisions A or B.
+```
